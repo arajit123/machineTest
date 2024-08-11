@@ -4,7 +4,7 @@ import 'package:machine_test/provider/changescreen.dart';
 
 class BottomNav extends StatelessWidget {
   
-  const BottomNav({Key? key}) : super(key: key);
+  const BottomNav({super.key});
   
 
   @override

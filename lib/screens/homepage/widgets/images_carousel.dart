@@ -1,5 +1,5 @@
 // import 'package:cached_network_image/cached_network_image.dart';
-import 'package:carousel_slider/carousel_controller.dart';
+// import 'package:carousel_slider/carousel_controller.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 
@@ -12,7 +12,7 @@ class ImageCarosel extends StatefulWidget {
 }
 
 class _ImageCaroselState extends State<ImageCarosel> {
-  final CarouselController _controller = CarouselController();
+  final CarouselSliderController _controller = CarouselSliderController();
   int _currentIndex = 0;
 
   final List<String> imageList = [

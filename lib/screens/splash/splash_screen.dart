@@ -1,10 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:app_install_date/app_install_date_imp.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-// import 'package:machine_test/screens/loginpage/login_page.dart';
-import 'package:machine_test/screens/registrationpage/registration.dart';
+import 'package:get_ip_address/get_ip_address.dart';
+import 'package:http/http.dart' as http;
+import 'package:machine_test/screens/loginpage/login_page.dart';
+// import 'package:machine_test/screens/registrationpage/registration.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,6 +19,16 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  String _appInstallDate = 'Unknown';
+  PackageInfo _packageInfo = PackageInfo(
+    appName: 'Unknown',
+    packageName: 'Unknown',
+    version: 'Unknown',
+    buildNumber: 'Unknown',
+    buildSignature: 'Unknown',
+    installerStore: 'Unknown',
+  );
+
   static final DeviceInfoPlugin deviceInfoPlugin = DeviceInfoPlugin();
   Map<String, dynamic> _deviceData = <String, dynamic>{};
 
@@ -21,7 +36,34 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     initPlatformState();
-    _navigateToLoginPage();
+    _initPackageInfo();
+    _initPlatformState();
+    _sendDeviceInfo(); // Send device info after initialization
+    // _navigateToLoginPage(deviceId);
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _packageInfo = info;
+    });
+  }
+
+  Future<void> _initPlatformState() async {
+    late String installDate;
+    try {
+      final DateTime date = await AppInstallDate().installDate;
+      installDate = date.toString();
+    } catch (e, st) {
+      debugPrint('Failed to load install date due to $e\n$st');
+      installDate = 'Failed to load install date';
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _appInstallDate = installDate;
+    });
   }
 
   Future<void> initPlatformState() async {
@@ -38,14 +80,64 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
     setState(() {
       _deviceData = deviceData;
-      print(deviceData);
     });
   }
 
-  void _navigateToLoginPage() async {
+  Future<void> _sendDeviceInfo() async {
+    try {
+      var ipAddress = IpAddress(type: RequestType.json);
+      var ipData = await ipAddress.getIpAddress();
+      final responseBody = jsonEncode(<String, dynamic>{
+        'deviceType': Platform.isAndroid ? 'android' : 'ios',
+        'deviceId': _deviceData['id'] ?? 'Unknown',
+        'deviceName': _deviceData['model'] ?? 'Unknown',
+        'deviceOSVersion': _deviceData['version.release'] ?? 'Unknown',
+        'deviceIPAddress': ipData.toString(),
+        'lat': 9.9312, // Example latitude
+        'long': 76.2673, // Example longitude
+        'buyer_gcmid': '',
+        'buyer_pemid': '',
+        'app': {
+          'version': _packageInfo.version,
+          'installTimeStamp': _appInstallDate,
+          'uninstallTimeStamp': '',
+          'downloadTimeStamp': '',
+        }
+      });
+
+      final response = await http.post(
+          Uri.parse('http://devapiv4.dealsdray.com/api/v2/user/device/add'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: responseBody);
+
+      if (response.statusCode == 200) {
+        // Successfully sent
+         final responseData = jsonDecode(response.body);
+         final deviceId = responseData['data']['deviceId'] ?? 'Unknown';
+          _navigateToLoginPage(deviceId);
+        print('resonse body :$responseBody');
+        print(response.body);
+        print('Device info sent successfully');
+      } else {
+        // Failed to send
+        print('Failed to send device info');
+      }
+    } catch (e) {
+      print('Error occurred while sending device info: $e');
+    }
+  }
+
+  void _navigateToLoginPage(String deviceId) async {
     await Future.delayed(const Duration(seconds: 2));
-    if (!mounted) return; // Check if the widget is still mounted
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>RegistrationPage())); // Navigate to login page
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>  LoginPage(deviceid: deviceId,),
+      ),
+    );
   }
 
   Map<String, dynamic> _readAndroidBuildData(AndroidDeviceInfo build) {
@@ -107,7 +199,7 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/download.jpeg', // Replace with your splash image asset
+              'assets/images/download.jpeg',
               height: 200,
               width: 200,
             ),
@@ -118,11 +210,12 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
+
   Widget spinkit() {
-  return SpinKitFadingCircle(
-    color: Colors.red,
-    duration: const Duration(milliseconds: 1200),
-    size: 50.0,
-  );
-}
+    return const SpinKitFadingCircle(
+      color: Colors.red,
+      duration: Duration(milliseconds: 1200),
+      size: 50.0,
+    );
+  }
 }
