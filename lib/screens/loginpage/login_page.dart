@@ -63,7 +63,7 @@ class _LoginPageState extends State<LoginPage>
          
         final userId = responseData['data']['userId'] ?? 'UnKnown';
         print('OTP request successful: ${responseData}');
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => OTPVerificationScreen(userId: userId,deviceId: deviceId,mobileNumber: mobileNumber,),

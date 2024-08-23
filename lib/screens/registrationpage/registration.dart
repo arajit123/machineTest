@@ -1,6 +1,7 @@
 import 'dart:convert'; // Import for JSON encoding
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // Import for HTTP requests
+import 'package:machine_test/mainscreen.dart';
 import 'package:machine_test/screens/homepage/home_page.dart';
 // import 'package:machine_test/screens/loginpage/login_page.dart';
 
@@ -52,7 +53,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const HomePage(),
+            builder: (context) => const Mainscreen(),
           ),
         );
       } else {
